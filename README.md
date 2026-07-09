@@ -149,6 +149,10 @@ ssh root@<HA_IP> 'ha core restart'
 - CI validates with **stub** secrets; your real `secrets.yaml` never leaves the box.
 - Nothing in this add-on ever force-pushes or writes to your base branch after
   the initial bootstrap import.
+- **This is change tracking, not disaster recovery** — pair it with HA's
+  native encrypted backups + the Google Drive Backup add-on for full system
+  state (`secrets.yaml`, `.storage/`, databases, add-ons). See the add-on
+  DOCS for the full "what is backed up where" table and where secrets belong.
 
 ## License
 

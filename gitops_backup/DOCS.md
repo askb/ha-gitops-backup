@@ -57,6 +57,46 @@ Copy `template/workflows/validate-ha-config.yaml` from this repository into
 repo → Settings → Branches → require the *HA Config Validation* and
 *HA Smoke Boot* checks.
 
+## What is backed up where (best practice)
+
+This add-on is **change tracking for your config**, not disaster recovery.
+Run both layers:
+
+| Data | This add-on (GitHub) | HA Backup + Google Drive |
+|------|----------------------|--------------------------|
+| Config YAML (automations, dashboards, …) | ✅ versioned, reviewable diffs | ✅ inside the archive |
+| `secrets.yaml` | ❌ **never** (gitignored) | ✅ inside the **encrypted** archive |
+| `.storage/` (auth, entity registry) | ❌ never | ✅ |
+| Databases, history, logs | ❌ never | ✅ (recorder DB, if selected) |
+| Add-ons + their data | ❌ | ✅ |
+| Media, camera recordings | ❌ | usually excluded — external drive |
+
+**Recommended stack:**
+
+```text
+GitHub (this add-on)      → config changes: who/what/when, PR review, CI gate
+HA auto backup (daily)    → full system state, encrypted, on the box
+ └─ Google Drive Backup   → off-site copies of those archives
+Password manager          → the three keys to the kingdom (below)
+```
+
+### Where secrets belong
+
+- `secrets.yaml` lives **only on the box** — referenced via `!secret` in your
+  config, excluded from git by the seeded `.gitignore`, and recovered from the
+  encrypted HA backup, never from GitHub.
+- Store in your **password manager** (never in the repo, never in a README):
+  1. the HA **backup encryption password** — without it your off-site backups
+     are unrestorable,
+  2. the **GitHub PAT** for this add-on,
+  3. your HA admin credentials.
+- CI validates PRs with **stub** secrets (step 4) — real values never leave
+  the box.
+
+**Disaster recovery order:** reinstall HAOS → restore the encrypted HA backup
+(brings back `secrets.yaml`, `.storage`, add-ons) → your config repo is then
+already live on the box and git history simply resumes.
+
 ## Options
 
 | Option | Default | Description |
