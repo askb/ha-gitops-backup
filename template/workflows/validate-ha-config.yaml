@@ -65,3 +65,52 @@ jobs:
           path: "."
           secrets: ""
           version: "${{ matrix.version }}"
+
+  ha-smoke-boot:
+    name: HA Smoke Boot
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Create stub secrets.yaml for CI boot
+        run: |
+          # Add a stub line for every `!secret` key your config references.
+          if [ ! -f secrets.yaml ]; then
+            printf '%s\n' \
+              'example_url: "http://localhost:8123"' \
+              > secrets.yaml
+          fi
+
+      - name: Boot Home Assistant with this config
+        run: |
+          # Pass = frontend answers HTTP AND no "Invalid config" in the log.
+          # Setup failures for LAN devices unreachable from CI are expected
+          # and only reported.
+          docker run -d --name ha \
+            -v "$PWD:/config" \
+            -p 8123:8123 \
+            ghcr.io/home-assistant/home-assistant:2026.3
+          up=false
+          for _ in $(seq 1 90); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8123/ || true)
+            if [ "$code" = "200" ] || [ "$code" = "302" ]; then up=true; break; fi
+            sleep 5
+          done
+          docker logs ha > boot.log 2>&1
+          if [ "$up" != "true" ]; then
+            echo "::error::Home Assistant did not come up within the window"
+            tail -80 boot.log
+            exit 1
+          fi
+          if grep -E "Invalid config" boot.log; then
+            echo "::error::Invalid config detected during boot"
+            exit 1
+          fi
+          echo "HA booted and answered HTTP with this config"
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f ha 2>/dev/null || true

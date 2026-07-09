@@ -16,7 +16,7 @@ config like production infrastructure:
 |---|---|---|
 | Changes land on main | Immediately, sometimes force-pushed | **Never** — every drift becomes a PR |
 | Review before accept | No | **Yes** — diff, comment, merge (or close) |
-| CI validation | No | **Yes** — HA version-matrix check gates the merge |
+| CI validation | No | **Yes** — HA version-matrix check **+ smoke boot** (config must actually start) gate the merge |
 | Bidirectional | Usually one-way upload | **Yes** — merged PRs flow back on the next run |
 | Secrets safety | gitignore defaults | gitignore defaults **+ CI runs with stub secrets only** |
 
@@ -27,8 +27,10 @@ config like production infrastructure:
    merged) → re-apply → if the live config changed, commit to a dated
    `auto-backup/…` branch and **open a PR** via the GitHub API.
 2. **CI on the PR** (template workflows included): yamllint + full
-   `frenck/action-home-assistant` validation against a pinned HA version, with
-   a `stable` early-warning leg — upgrade breakage surfaces in CI, not on your Pi.
+   `frenck/action-home-assistant` validation against a pinned HA version (with
+   a `stable` early-warning leg) **+ a smoke boot** — the pinned HA Core
+   container starts with your config and must answer HTTP with no
+   `Invalid config` — upgrade breakage surfaces in CI, not on your Pi.
 3. **You merge** (from your phone, if you like). The next add-on run rebases the
    merged state back onto the box.
 
