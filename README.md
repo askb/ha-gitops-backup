@@ -22,6 +22,45 @@ config like production infrastructure:
 
 ## How it works
 
+```mermaid
+flowchart LR
+    subgraph HA["🏠 Home Assistant box"]
+        CFG[("/config")]
+        ADDON["GitOps Backup add-on<br/>(daily run)"]
+        CFG -- "drift detected" --> ADDON
+    end
+
+    subgraph GH["☁️ GitHub"]
+        BR["auto-backup/… branch"]
+        PR{{"Pull Request"}}
+        subgraph CI["CI gate — must pass"]
+            LINT["yamllint"]
+            CHECK["HA config check<br/>pinned + stable matrix"]
+            BOOT["HA smoke boot<br/>container must start"]
+        end
+        MAIN[("main")]
+    end
+
+    YOU(("👤 You<br/>review & merge"))
+
+    ADDON -- "stash → rebase → commit" --> BR
+    BR --> PR
+    PR --> LINT & CHECK & BOOT
+    LINT & CHECK & BOOT --> YOU
+    YOU -- "merge" --> MAIN
+    MAIN -. "next run: rebase back<br/>onto the box" .-> ADDON
+
+    classDef box fill:#1c3a5e,stroke:#7fb3ff,color:#ffffff
+    classDef addon fill:#0d7a5f,stroke:#34c39a,color:#ffffff
+    classDef gate fill:#7a3b0d,stroke:#ffb066,color:#ffffff
+    classDef human fill:#5e1c4a,stroke:#ff7fd4,color:#ffffff
+    classDef store fill:#333d3a,stroke:#9aa5a1,color:#ffffff
+    class ADDON addon
+    class LINT,CHECK,BOOT gate
+    class YOU human
+    class CFG,MAIN,BR,PR store
+```
+
 1. **Daily (configurable) run** on your Home Assistant box:
    stash local drift → `pull --rebase` from `origin/main` (picks up PRs you
    merged) → re-apply → if the live config changed, commit to a dated

@@ -2,20 +2,60 @@
 
 PR-gated GitHub backup for your Home Assistant config.
 
-## Quick start
+## What you need
 
-1. Create a GitHub repo (private recommended).
-2. Create a fine-grained PAT with **Contents: read/write** and
-   **Pull requests: read/write** on that repo.
-3. Fill in the add-on options (`github_repo`, `github_token`), leave
-   `dry_run: true`, start the add-on, and check
-   `gitops_backup.log` in your config folder.
-4. Happy? Set `dry_run: false`. The first real run bootstraps git in your
-   config folder (with a Home-Assistant-aware `.gitignore`) and pushes the
-   initial import. Every run after that only opens pull requests.
-5. Copy `template/workflows/validate-ha-config.yaml` from the add-on
-   repository into `.github/workflows/` of your config repo so every backup
-   PR is validated against pinned Home Assistant versions before merge.
+- A **GitHub account** (free is fine)
+- A **repository** for your config — private recommended
+- A **fine-grained personal access token (PAT)** scoped to that one repo
+
+## Step-by-step setup
+
+### 1. Create the repository
+
+github.com → **+** → **New repository** → name it (e.g. `my-ha-config`) →
+**Private** → Create. Don't add a README — the add-on bootstraps the content.
+
+### 2. Create the token
+
+1. github.com → your avatar → **Settings** → **Developer settings** →
+   **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
+2. **Token name**: `ha-gitops-backup` · **Expiration**: 1 year (set a calendar
+   reminder — the add-on status will show `error` when it expires)
+3. **Repository access**: *Only select repositories* → pick the repo from step 1
+4. **Permissions → Repository permissions**:
+   - **Contents**: Read and write
+   - **Pull requests**: Read and write
+   - everything else: No access
+5. Generate, copy the `github_pat_…` value — you won't see it again
+
+> The token can only touch that single repo. Even if it leaked, your other
+> repos and account are untouchable — that's why fine-grained beats classic PATs.
+
+### 3. Configure the add-on
+
+Settings → Add-ons → GitOps Config Backup → **Configuration**:
+
+```yaml
+github_repo: yourname/my-ha-config
+github_token: github_pat_XXXXXXXX
+dry_run: true        # first run: log only, push nothing
+```
+
+Start the add-on, then check `gitops_backup.log` in your config folder to see
+what *would* be committed. Happy? Set `dry_run: false` and restart. The first
+real run pushes the initial import; every run after that only opens PRs.
+
+The token is stored in the add-on options by the Supervisor — it never goes
+into git, and the seeded `.gitignore` keeps `secrets.yaml` and other sensitive
+files out of the repo entirely.
+
+### 4. Add the CI gate (recommended)
+
+Copy `template/workflows/validate-ha-config.yaml` from this repository into
+`.github/workflows/` of **your config repo**, and add a stub line for every
+`!secret` key you use (CI never sees real secrets). Then protect `main`:
+repo → Settings → Branches → require the *HA Config Validation* and
+*HA Smoke Boot* checks.
 
 ## Options
 
