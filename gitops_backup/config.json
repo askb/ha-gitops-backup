@@ -2,12 +2,17 @@
   "name": "GitOps Config Backup",
   "version": "0.1.0",
   "slug": "gitops_backup",
-  "description": "PR-gated GitHub backup for your Home Assistant config — nothing force-pushes, every change is reviewable, CI validates before merge",
+  "description": "PR-gated GitHub backup for your Home Assistant config \u2014 nothing force-pushes, every change is reviewable, CI validates before merge",
   "url": "https://github.com/askb/ha-gitops-backup",
-  "arch": ["amd64", "aarch64", "armv7"],
+  "arch": [
+    "amd64",
+    "aarch64",
+    "armv7"
+  ],
   "init": false,
-  "startup": "application",
-  "map": ["homeassistant_config:rw"],
+  "map": [
+    "homeassistant_config:rw"
+  ],
   "options": {
     "github_repo": "",
     "github_token": "",
