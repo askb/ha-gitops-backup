@@ -41,14 +41,15 @@ flowchart LR
         MAIN[("main")]
     end
 
-    YOU(("👤 You<br/>review & merge"))
+    YOU(("👤 You / dev<br/>author & review"))
 
     ADDON -- "stash → rebase → commit" --> BR
     BR --> PR
+    YOU -- "submit config<br/>change PR" --> PR
     PR --> LINT & CHECK & BOOT
     LINT & CHECK & BOOT --> YOU
     YOU -- "merge" --> MAIN
-    MAIN -. "next run: rebase back<br/>onto the box" .-> ADDON
+    MAIN -. "rolled out to the box<br/>on the next run (rebase)" .-> ADDON
 
     classDef box fill:#1c3a5e,stroke:#7fb3ff,color:#ffffff
     classDef addon fill:#0d7a5f,stroke:#34c39a,color:#ffffff
