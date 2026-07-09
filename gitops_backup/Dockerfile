@@ -10,5 +10,5 @@ RUN chmod a+x /app/gitops_backup.sh /etc/services.d/gitops/run
 
 LABEL \
   io.hass.type="addon" \
-  org.opencontainers.image.source="https://github.com/askb/ha-gitops-backup" \
+  org.opencontainers.image.source="https://github.com/askb/ha-gitops" \
   org.opencontainers.image.licenses="Apache-2.0"
