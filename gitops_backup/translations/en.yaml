@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Anil Belur
+---
+configuration:
+  github_repo:
+    name: GitHub repository
+    description: "`owner/repo` your config is backed up into."
+  github_token:
+    name: GitHub token
+    description: >-
+      Fine-grained PAT with Contents and Pull requests read/write on the
+      repository.
+  base_branch:
+    name: Base branch
+    description: Branch the backup pull requests target.
+  branch_prefix:
+    name: Branch prefix
+    description: Prefix for the dated backup branches.
+  interval_hours:
+    name: Interval (hours)
+    description: Hours between backup runs.
+  run_at_start:
+    name: Run at start
+    description: Also run a backup when the add-on starts.
+  dry_run:
+    name: Dry run
+    description: Log what would change without pushing anything.
+  commit_name:
+    name: Commit author name
+  commit_email:
+    name: Commit author email
+  signoff:
+    name: DCO sign-off
+    description: Add a Signed-off-by trailer to backup commits.

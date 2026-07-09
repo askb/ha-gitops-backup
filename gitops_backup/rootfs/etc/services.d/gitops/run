@@ -1,0 +1,21 @@
+#!/usr/bin/with-contenv bashio
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Anil Belur
+# ==============================================================================
+# GitOps Config Backup — service loop
+# ==============================================================================
+
+INTERVAL_HOURS=$(bashio::config 'interval_hours')
+RUN_AT_START=$(bashio::config 'run_at_start')
+
+bashio::log.info "GitOps Config Backup starting (every ${INTERVAL_HOURS}h)"
+
+if bashio::var.true "${RUN_AT_START}"; then
+    bashio::log.info "run_at_start enabled — running first backup now"
+    bash /app/gitops_backup.sh || bashio::log.warning "Backup run failed (see log in config dir)"
+fi
+
+while true; do
+    sleep "$((INTERVAL_HOURS * 3600))"
+    bash /app/gitops_backup.sh || bashio::log.warning "Backup run failed (see log in config dir)"
+done

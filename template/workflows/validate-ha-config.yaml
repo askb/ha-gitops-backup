@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Anil Belur
+#
+# Template: drop into .github/workflows/ of YOUR Home Assistant config repo.
+# Validates every backup PR before it can merge — the "gate" half of GitOps.
+---
+name: Validate HA Config
+
+"on":
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+      - name: yamllint
+        run: |
+          pip install --quiet yamllint
+          yamllint -d "{extends: default, rules: {line-length: disable,
+            truthy: disable}}" .
+
+  ha-config-check:
+    name: HA Config Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Pin a known-good HA version as the required gate;
+          # track stable as an early-warning (non-blocking) leg.
+          - version: "2026.3"
+            experimental: false
+          - version: "stable"
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Create stub secrets.yaml for CI validation
+        run: |
+          # CI never sees real secrets; add a stub entry here for every
+          # `!secret` key your configuration.yaml references.
+          if [ ! -f secrets.yaml ]; then
+            printf '%s\n' \
+              'example_url: "http://localhost:8123"' \
+              > secrets.yaml
+          fi
+
+      - name: Validate HA configuration
+        uses: frenck/action-home-assistant@941d5d917f4c1c7a7e7d4087526daf90d53f4437  # v1
+        with:
+          path: "."
+          secrets: ""
+          version: "${{ matrix.version }}"

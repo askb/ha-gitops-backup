@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Anil Belur
+##############################################################################
+# Self-check for gitops_backup.sh — runs entirely locally (no GitHub calls):
+#   1. bootstrap dry-run seeds .gitignore and reports status
+#   2. real bootstrap pushes the initial import to a local bare "origin"
+#   3. drift on a later run produces a backup branch (PR call fails soft,
+#      status = warning:branch_pushed)
+##############################################################################
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT="${HERE}/../gitops_backup/rootfs/app/gitops_backup.sh"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+mkdir -p "$TMP/config" "$TMP/data"
+git init -q --bare "$TMP/origin.git"
+
+options() { # dry_run
+  cat > "$TMP/data/options.json" <<EOF
+{"github_repo":"local/test","github_token":"test-token","base_branch":"main",
+ "branch_prefix":"auto-backup","dry_run":$1,
+ "commit_name":"Test","commit_email":"test@localhost","signoff":true}
+EOF
+}
+
+run() {
+  OPTIONS="$TMP/data/options.json" CONFIG_DIR="$TMP/config" HOME="$TMP" \
+    bash "$SCRIPT" >/dev/null 2>&1 || true
+}
+
+status() { cat "$TMP/config/.gitops_backup_status"; }
+
+echo "config file content" > "$TMP/config/configuration.yaml"
+echo "secret: real" > "$TMP/config/secrets.yaml"
+
+# 1. dry-run bootstrap
+options true
+run
+[ -f "$TMP/config/.gitignore" ] || { echo "FAIL: .gitignore not seeded"; exit 1; }
+grep -q "^secrets.yaml$" "$TMP/config/.gitignore" || { echo "FAIL: secrets.yaml not ignored"; exit 1; }
+[ "$(status)" = "success:dry_run:bootstrap" ] || { echo "FAIL: dry-run status = $(status)"; exit 1; }
+
+# 2. real bootstrap against local bare origin (remote URL rewritten via insteadOf)
+options false
+HOME="$TMP" git config --global "url.$TMP/origin.git.insteadOf" \
+  "https://x-access-token:test-token@github.com/local/test.git"
+run
+git -C "$TMP/config" log --oneline -1 | grep -q "initial" || { echo "FAIL: no bootstrap commit"; exit 1; }
+git -c safe.bareRepository=all -C "$TMP/origin.git" rev-parse main >/dev/null || { echo "FAIL: main not pushed"; exit 1; }
+# secrets must not be committed
+if git -C "$TMP/config" ls-files | grep -q secrets.yaml; then
+  echo "FAIL: secrets.yaml committed"; exit 1
+fi
+
+# 3. drift -> backup branch (PR API unreachable => warning:branch_pushed)
+echo "changed" >> "$TMP/config/configuration.yaml"
+run
+git -c safe.bareRepository=all -C "$TMP/origin.git" branch | grep -q "auto-backup/" || { echo "FAIL: no backup branch pushed"; exit 1; }
+status | grep -q "warning:branch_pushed" || { echo "FAIL: drift status = $(status)"; exit 1; }
+git -C "$TMP/config" branch --show-current | grep -q "^main$" || { echo "FAIL: not back on main"; exit 1; }
+
+echo "OK: all self-checks passed"
