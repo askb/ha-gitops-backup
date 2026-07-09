@@ -1,5 +1,5 @@
 {
-  "name": "GitOps Config Backup Repository",
-  "url": "https://github.com/askb/ha-gitops-backup",
+  "name": "HA GitOps Repository",
+  "url": "https://github.com/askb/ha-gitops",
   "maintainer": "askb"
 }

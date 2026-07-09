@@ -1,10 +1,10 @@
-# GitOps Config Backup — Home Assistant Add-on
+# HA GitOps — Home Assistant Add-on
 
 **PR-gated GitHub backup for your Home Assistant config.** Nothing force-pushes,
 every change is a reviewable pull request, and CI validates your config against
 pinned Home Assistant versions *before* it can merge.
 
-[![Add repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Faskb%2Fha-gitops-backup)
+[![Add repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Faskb%2Fha-gitops)
 
 ## Why another config-backup add-on?
 

@@ -19,7 +19,7 @@ github.com → **+** → **New repository** → name it (e.g. `my-ha-config`) �
 
 1. github.com → your avatar → **Settings** → **Developer settings** →
    **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
-2. **Token name**: `ha-gitops-backup` · **Expiration**: 1 year (set a calendar
+2. **Token name**: `ha-gitops` · **Expiration**: 1 year (set a calendar
    reminder — the add-on status will show `error` when it expires)
 3. **Repository access**: *Only select repositories* → pick the repo from step 1
 4. **Permissions → Repository permissions**:
