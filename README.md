@@ -26,8 +26,9 @@ config like production infrastructure:
 flowchart LR
     subgraph HA["🏠 Home Assistant box"]
         CFG[("/config")]
-        ADDON["GitOps Backup add-on<br/>(daily run)"]
-        CFG -- "drift detected" --> ADDON
+        ADDON["GitOps Backup add-on<br/>two-way sync, every run:<br/>⬇ pull merged → ⬆ push drift"]
+        CFG -- "① local edits<br/>(UI, HA upgrades)" --> ADDON
+        ADDON -- "⑤ merged changes<br/>applied to /config" --> CFG
     end
 
     subgraph GH["☁️ GitHub"]
@@ -43,13 +44,13 @@ flowchart LR
 
     YOU(("👤 You / dev<br/>author & review"))
 
-    ADDON -- "stash → rebase → commit" --> BR
+    ADDON -- "② drift → branch + PR" --> BR
     BR --> PR
-    YOU -- "submit config<br/>change PR" --> PR
+    YOU -- "② or: submit config<br/>change PR yourself" --> PR
     PR --> LINT & CHECK & BOOT
     LINT & CHECK & BOOT --> YOU
-    YOU -- "merge" --> MAIN
-    MAIN -. "rolled out to the box<br/>on the next run (rebase)" .-> ADDON
+    YOU -- "③ merge" --> MAIN
+    MAIN -- "④ pull --rebase<br/>on the next run" --> ADDON
 
     classDef box fill:#1c3a5e,stroke:#7fb3ff,color:#ffffff
     classDef addon fill:#0d7a5f,stroke:#34c39a,color:#ffffff
@@ -61,6 +62,12 @@ flowchart LR
     class YOU human
     class CFG,MAIN,BR,PR store
 ```
+
+**The loop, numbered:** ① you edit via the HA UI (or an upgrade changes files) →
+② the add-on turns that drift into a PR — or you open a config PR yourself →
+③ CI gates it, you merge → ④ the add-on's next run pulls merged `main` →
+⑤ and applies it to `/config`. Both directions go through the same run:
+it **pulls first, then pushes drift**, so box and repo converge on `main`.
 
 1. **Daily (configurable) run** on your Home Assistant box:
    stash local drift → `pull --rebase` from `origin/main` (picks up PRs you
