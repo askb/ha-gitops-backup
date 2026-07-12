@@ -6,6 +6,10 @@ pinned Home Assistant versions *before* it can merge.
 
 [![Add repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Faskb%2Fha-gitops)
 
+[![GitHub Release](https://img.shields.io/github/v/release/askb/ha-gitops?label=release)](https://github.com/askb/ha-gitops/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/askb/ha-gitops/total?label=downloads)](https://github.com/askb/ha-gitops/releases)
+[![License](https://img.shields.io/github/license/askb/ha-gitops)](LICENSE)
+
 ## Why another config-backup add-on?
 
 Most config-sync tools upload your files straight onto a branch — some even
