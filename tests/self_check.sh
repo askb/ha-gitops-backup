@@ -62,4 +62,25 @@ git -c safe.bareRepository=all -C "$TMP/origin.git" branch | grep -q "auto-backu
 status | grep -q "warning:branch_pushed" || { echo "FAIL: drift status = $(status)"; exit 1; }
 git -C "$TMP/config" branch --show-current | grep -q "^main$" || { echo "FAIL: not back on main"; exit 1; }
 
+# 4. Migration case: repo already had its own .gitignore lacking the addon's
+#    entries, and was never excluded. The addon's own status file + log must
+#    still be kept out of the backup (regression test for the seed_gitignore
+#    skip-when-.gitignore-exists bug).
+sleep 1  # ensure a distinct auto-backup/<timestamp> branch name
+rm -f "$TMP/config/.git/info/exclude"                 # never-excluded repo
+printf 'secrets.yaml\n' > "$TMP/config/.gitignore"    # user ignore, no addon entries
+HOME="$TMP" git -C "$TMP/config" add .gitignore
+HOME="$TMP" git -C "$TMP/config" commit -q -m "user gitignore"
+echo "success:no_changes:" > "$TMP/config/.gitops_backup_status"
+echo "log line" > "$TMP/config/gitops_backup.log"
+echo "more drift" >> "$TMP/config/configuration.yaml"
+run
+newbranch=$(git -c safe.bareRepository=all -C "$TMP/origin.git" branch \
+  | grep -o 'auto-backup/[^ ]*' | tail -1)
+tree=$(git -c safe.bareRepository=all -C "$TMP/origin.git" ls-tree -r --name-only "$newbranch")
+if echo "$tree" | grep -qE '^\.gitops_backup_status$|^gitops_backup\.log$'; then
+  echo "FAIL: addon runtime files committed to backup branch"; exit 1
+fi
+echo "$tree" | grep -q "^configuration.yaml$" || { echo "FAIL: real drift not backed up"; exit 1; }
+
 echo "OK: all self-checks passed"
