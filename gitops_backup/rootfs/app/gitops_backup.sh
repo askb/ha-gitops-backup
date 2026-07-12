@@ -95,6 +95,37 @@ EOF
     fi
 }
 
+ensure_own_excludes() {
+    # The addon's own runtime files must never be committed — not even when the
+    # repo already had a .gitignore (seed_gitignore only writes one when none
+    # exists, so migrating an existing repo would otherwise sweep these into a
+    # backup PR and risk a status-file PR feedback loop). .git/info/exclude is
+    # git's local, non-committed ignore — the right home for addon-managed
+    # metadata. Idempotent: replace our managed block each run.
+    [ -d .git ] || return 0
+    mkdir -p .git/info
+    local exclude=".git/info/exclude"
+    if [ -f "$exclude" ]; then
+sed -i \
+    '/# >>> gitops-backup managed >>>/,/# <<< gitops-backup managed <<</d' \
+    "$exclude"
+    fi
+    cat >> "$exclude" <<'EOF'
+# >>> gitops-backup managed >>>
+.gitops_backup_status
+gitops_backup.log
+# <<< gitops-backup managed <<<
+EOF
+    # If a prior buggy run already committed these, stop tracking them (the
+    # removal flows out through the next backup PR).
+    local f
+    for f in .gitops_backup_status gitops_backup.log; do
+if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+    git rm -q --cached "$f"
+fi
+    done
+}
+
 bootstrap_if_needed() {
     # Returns 0 if bootstrap ran (caller should stop), 1 if repo already exists
     if [ -d .git ]; then return 1; fi
@@ -151,6 +182,7 @@ main() {
     fi
     git remote set-url origin "$REMOTE_URL"
     seed_gitignore
+    ensure_own_excludes
     trap cleanup_branch EXIT
 
     # 1–2. Stash local drift, sync upstream (merged PRs flow back here)
