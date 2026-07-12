@@ -97,34 +97,56 @@ EOF
     fi
 }
 
-ensure_own_excludes() {
-    # The addon's own runtime files must never be committed — not even when the
-    # repo already had a .gitignore (seed_gitignore only writes one when none
-    # exists, so migrating an existing repo would otherwise sweep these into a
-    # backup PR and risk a status-file PR feedback loop). .git/info/exclude is
-    # git's local, non-committed ignore — the right home for addon-managed
-    # metadata. Idempotent: replace our managed block each run.
+never_commit_patterns() {
+    # Secrets, credentials, and the addon's own runtime metadata — must never be
+    # committed. Shared by the exclude writer and the untracker.
+    cat <<'EOF'
+secrets.yaml
+*.key
+*.pem
+*.token
+.google.token
+.git-credentials
+.cloud/
+.storage/
+.gitops_backup_status
+gitops_backup.log
+EOF
+}
+
+write_secret_excludes() {
+    # Write the never-commit patterns to .git/info/exclude (git's local,
+    # un-shared ignore) so secrets/credentials + addon metadata stay out of
+    # backups even when migrating a repo that already has its own .gitignore
+    # (seed_gitignore only writes one for a fresh repo). Called before the stash
+    # so untracked secrets are never swept in. Idempotent: replace our block.
     [ -d .git ] || return 0
     mkdir -p .git/info
     local exclude=".git/info/exclude"
     if [ -f "$exclude" ]; then
-sed -i \
-    '/# >>> gitops-backup managed >>>/,/# <<< gitops-backup managed <<</d' \
-    "$exclude"
+        sed -i \
+            '/# >>> gitops-backup managed >>>/,/# <<< gitops-backup managed <<</d' \
+            "$exclude"
     fi
-    cat >> "$exclude" <<'EOF'
-# >>> gitops-backup managed >>>
-.gitops_backup_status
-gitops_backup.log
-# <<< gitops-backup managed <<<
-EOF
-    # If a prior buggy run already committed these, stop tracking them (the
-    # removal flows out through the next backup PR).
-    local f
-    for f in .gitops_backup_status gitops_backup.log; do
-if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
-    git rm -q --cached "$f"
-fi
+    {
+        echo "# >>> gitops-backup managed >>>"
+        never_commit_patterns
+        echo "# <<< gitops-backup managed <<<"
+    } >> "$exclude"
+}
+
+untrack_secrets() {
+    # If a prior run committed a secret/credential, stop tracking it. Called
+    # AFTER the upstream sync (not before the stash — a staged deletion would be
+    # lost in stash/pop) so the removal counts as drift and flows out through the
+    # next backup PR for review.
+    [ -d .git ] || return 0
+    never_commit_patterns | while IFS= read -r pat; do
+        [ -n "$pat" ] || continue
+        if git ls-files --error-unmatch -- "$pat" >/dev/null 2>&1; then
+            log "⚠ Untracking previously-committed sensitive path: ${pat}"
+            git rm -q --cached -r -- "$pat"
+        fi
     done
 }
 
@@ -185,7 +207,7 @@ main() {
     fi
     git remote set-url origin "$REMOTE_URL"
     seed_gitignore
-    ensure_own_excludes
+    write_secret_excludes
     trap cleanup_branch EXIT
 
     # 1–2. Stash local drift, sync upstream (merged PRs flow back here)
@@ -206,6 +228,10 @@ main() {
         git stash drop -q 2>/dev/null || true
         write_status warning stash_conflict "kept live config where conflicting"
     fi
+
+    # If a prior run committed a secret/credential, untrack it now (before the
+    # change check) so the removal is captured as drift and goes out via a PR.
+    untrack_secrets
 
     # 4. Anything to back up?
     if [ -z "$(git status --porcelain)" ]; then

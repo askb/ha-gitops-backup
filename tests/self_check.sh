@@ -63,16 +63,21 @@ status | grep -q "warning:branch_pushed" || { echo "FAIL: drift status = $(statu
 git -C "$TMP/config" branch --show-current | grep -q "^main$" || { echo "FAIL: not back on main"; exit 1; }
 
 # 4. Migration case: repo already had its own .gitignore lacking the addon's
-#    entries, and was never excluded. The addon's own status file + log must
-#    still be kept out of the backup (regression test for the seed_gitignore
-#    skip-when-.gitignore-exists bug).
+#    entries, and was never excluded. The addon's own status file + log AND any
+#    secrets/credentials must be kept out of the backup — even an already-
+#    committed secret must be untracked (regression test for seed_gitignore
+#    skip-when-.gitignore-exists + secret-leak on migrated repos).
 sleep 1  # ensure a distinct auto-backup/<timestamp> branch name
 rm -f "$TMP/config/.git/info/exclude"                 # never-excluded repo
-printf 'secrets.yaml\n' > "$TMP/config/.gitignore"    # user ignore, no addon entries
+printf 'secrets.yaml\n' > "$TMP/config/.gitignore"    # user ignore, no addon/token entries
 HOME="$TMP" git -C "$TMP/config" add .gitignore
 HOME="$TMP" git -C "$TMP/config" commit -q -m "user gitignore"
 echo "success:no_changes:" > "$TMP/config/.gitops_backup_status"
 echo "log line" > "$TMP/config/gitops_backup.log"
+echo "ya29.oauth-secret" > "$TMP/config/.google.token"  # untracked secret, not in user ignore
+echo "PRIVATE KEY" > "$TMP/config/leaked.key"           # secret already committed by a prior run
+HOME="$TMP" git -C "$TMP/config" add -f leaked.key
+HOME="$TMP" git -C "$TMP/config" commit -q -m "oops: committed a key"
 echo "more drift" >> "$TMP/config/configuration.yaml"
 run
 newbranch=$(git -c safe.bareRepository=all -C "$TMP/origin.git" branch \
@@ -80,6 +85,9 @@ newbranch=$(git -c safe.bareRepository=all -C "$TMP/origin.git" branch \
 tree=$(git -c safe.bareRepository=all -C "$TMP/origin.git" ls-tree -r --name-only "$newbranch")
 if echo "$tree" | grep -qE '^\.gitops_backup_status$|^gitops_backup\.log$'; then
   echo "FAIL: addon runtime files committed to backup branch"; exit 1
+fi
+if echo "$tree" | grep -qE '^\.google\.token$|^leaked\.key$|^secrets\.yaml$'; then
+  echo "FAIL: a secret/credential was committed to the backup branch"; exit 1
 fi
 echo "$tree" | grep -q "^configuration.yaml$" || { echo "FAIL: real drift not backed up"; exit 1; }
 
