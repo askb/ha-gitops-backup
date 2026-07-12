@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1
+
+- Security: the never-commit guarantee (secrets, credentials, `.storage/`,
+  addon runtime files) now holds for **migrated** repos too, not just fresh
+  ones. Patterns are enforced via `.git/info/exclude` on every run, and any
+  secret a prior run already committed is untracked (the removal flows out
+  through the next backup PR). Previously a repo that arrived with its own
+  `.gitignore` lacking these entries could leak an OAuth token or key.
+
 ## 0.2.0
 
 - Docs: make the two-pillar backup model explicit — config repo (this add-on)
