@@ -66,10 +66,18 @@ Run both layers:
 |------|----------------------|--------------------------|
 | Config YAML (automations, dashboards, …) | ✅ versioned, reviewable diffs | ✅ inside the archive |
 | `secrets.yaml` | ❌ **never** (gitignored) | ✅ inside the **encrypted** archive |
-| `.storage/` (auth, entity registry) | ❌ never | ✅ |
+| `.storage/` — UI-added **integrations**, **logins/tokens**, **device/entity/area registries**, **UI (Lovelace) dashboards**, helpers | ❌ never (holds secrets) | ✅ **most restore-critical item** |
+| Credentials: `*.token`, `.google.token`, `*.key`, `*.pem`, `.cloud/` | ❌ never | ✅ |
 | Databases, history, logs | ❌ never | ✅ (recorder DB, if selected) |
-| Add-ons + their data | ❌ | ✅ |
+| Add-on configs/data, TLS certs (`/ssl`) — live **outside** `/config` | ❌ add-on can't see them | ✅ |
 | Media, camera recordings | ❌ | usually excluded — external drive |
+
+> **The 100% guarantee: config repo + encrypted full backup. Neither alone is
+> enough.** Restore from the git repo *only* and you'd get your YAML back but
+> have to re-do by hand every UI-added integration, all logins/tokens, device
+> and entity names, UI dashboards, `secrets.yaml`, and every add-on — because
+> those live in `.storage/`, `secrets.yaml`, or outside `/config`. That's why a
+> full backup (Pillar 2) is mandatory, not optional.
 
 **Recommended stack:**
 
@@ -114,8 +122,9 @@ already live on the box and git history simply resumes.
 ## What is committed
 
 Everything in your config folder **except** the seeded `.gitignore` exclusions:
-`secrets.yaml`, `.storage/`, `.cloud/`, databases, logs, `known_devices.yaml`,
-`ip_bans.yaml`, and the add-on's own status/log files.
+`secrets.yaml`, `.storage/`, `.cloud/`, databases, logs, `*.token`,
+`.google.token`, `known_devices.yaml`, `ip_bans.yaml`, and the add-on's own
+status/log files.
 
 ## Status in Home Assistant
 

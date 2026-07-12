@@ -65,6 +65,8 @@ seed_gitignore() {
 secrets.yaml
 *.pem
 *.key
+*.token
+.google.token
 .git-credentials
 .cloud/
 .storage/
@@ -130,6 +132,7 @@ bootstrap_if_needed() {
     # Returns 0 if bootstrap ran (caller should stop), 1 if repo already exists
     if [ -d .git ]; then return 1; fi
     log "No git repo in ${CONFIG_DIR} — bootstrapping"
+    log "⚠ This add-on versions DECLARATIVE config only. It does NOT back up secrets.yaml, .storage/ (UI-configured integrations, logins, device/entity registries, dashboards), the database, or add-on data — those are excluded on purpose. For a 100% restore you MUST also run HA full backups (e.g. the Google Drive Backup add-on). See this add-on's DOCS → 'What is backed up where'."
     if [ "$DRY_RUN" = "true" ]; then
         seed_gitignore
         log "DRY RUN: would git init, commit initial import, push to ${BASE_BRANCH}"
