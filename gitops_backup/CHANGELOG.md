@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- Feature: `apply_after_pull` — after a merged PR is pulled into `/config`, the
+  add-on now applies it to the running Home Assistant instead of leaving files
+  on disk unloaded. Default `reload` calls `homeassistant.reload_all` (no
+  restart); `restart` restarts HA (for `configuration.yaml` integration or
+  `custom_components/` changes); `off` keeps the previous behaviour. Only fires
+  when the sync actually advanced `HEAD`, never in `dry_run`. Requires the
+  add-on's Home Assistant API access (now enabled via `homeassistant_api`).
+
 ## 0.2.1
 
 - Security: the never-commit guarantee (secrets, credentials, `.storage/`,

@@ -118,6 +118,7 @@ already live on the box and git history simply resumes.
 | `dry_run` | `false` | Log what would change; push nothing |
 | `commit_name` / `commit_email` | see defaults | Commit author identity |
 | `signoff` | `true` | Add `Signed-off-by` (DCO) to commits |
+| `apply_after_pull` | `reload` | After a merged PR is pulled into `/config`, apply it to the running HA: `reload` calls `homeassistant.reload_all` (automations, scripts, scenes, templates, `input_*`) with no restart; `restart` calls `homeassistant.restart` (use when merged changes touch `configuration.yaml` integrations or `custom_components/`, which are not hot-reloadable); `off` disables it. Only fires when the sync actually advanced `HEAD`, never in `dry_run`. |
 
 ## What is committed
 

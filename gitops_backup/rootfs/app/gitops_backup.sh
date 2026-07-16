@@ -32,6 +32,8 @@ DRY_RUN="$(opt .dry_run)"
 COMMIT_NAME="$(opt .commit_name)"
 COMMIT_EMAIL="$(opt .commit_email)"
 SIGNOFF="$(opt .signoff)"
+APPLY_AFTER_PULL="$(opt .apply_after_pull)"
+[ "$APPLY_AFTER_PULL" = "null" ] && APPLY_AFTER_PULL="reload"
 
 REMOTE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git"
 API="https://api.github.com/repos/${GITHUB_REPO}"
@@ -55,6 +57,27 @@ api_call() { # method path [json-body]
         -H "Accept: application/vnd.github.v3+json" \
         ${body:+-d "$body"} \
         "${API}${path}"
+}
+
+ha_apply() { # mode: reload|restart|off — apply pulled changes to the running HA
+    local mode="$1" service
+    case "$mode" in
+        reload)  service="homeassistant/reload_all" ;;
+        restart) service="homeassistant/restart" ;;
+        *)       return 0 ;;
+    esac
+    if [ -z "${SUPERVISOR_TOKEN:-}" ]; then
+        log "⚠ apply_after_pull=${mode} but SUPERVISOR_TOKEN unset; skipping — needs homeassistant_api"
+        return 0
+    fi
+    if curl -sf -X POST \
+        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d '{}' "http://supervisor/core/api/services/${service}" >/dev/null; then
+        log "✅ Applied pulled changes: homeassistant.${service#*/}"
+    else
+        log "⚠ Failed to call homeassistant.${service#*/}; apply manually in HA"
+    fi
 }
 
 seed_gitignore() {
@@ -216,17 +239,27 @@ main() {
         git stash -q --include-untracked
         stashed=true
     fi
+    local pre_sync post_sync
+    pre_sync=$(git rev-parse HEAD)
     if ! git pull -q --rebase origin "$BASE_BRANCH"; then
         git rebase --abort 2>/dev/null || true
         [ "$stashed" = true ] && git stash pop -q 2>/dev/null
         write_status error pull_rebase_failed "resolve manually in ${CONFIG_DIR}"
         exit 1
     fi
+    post_sync=$(git rev-parse HEAD)
     # 3. Re-apply drift
     if [ "$stashed" = true ] && ! git stash pop -q; then
         git checkout -q --theirs . 2>/dev/null || true
         git stash drop -q 2>/dev/null || true
         write_status warning stash_conflict "kept live config where conflicting"
+    fi
+
+    # 3b. Upstream advanced (a merged PR came down) → apply it to the running HA.
+    # Only on real change and never in dry_run, so we don't reload on no-op runs.
+    if [ "$pre_sync" != "$post_sync" ] && [ "$DRY_RUN" != "true" ]; then
+        log "Upstream sync: ${pre_sync:0:7} → ${post_sync:0:7} — applying (${APPLY_AFTER_PULL})"
+        ha_apply "$APPLY_AFTER_PULL"
     fi
 
     # If a prior run committed a secret/credential, untrack it now (before the

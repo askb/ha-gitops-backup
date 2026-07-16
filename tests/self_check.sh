@@ -91,4 +91,12 @@ if echo "$tree" | grep -qE '^\.google\.token$|^leaked\.key$|^secrets\.yaml$'; th
 fi
 echo "$tree" | grep -q "^configuration.yaml$" || { echo "FAIL: real drift not backed up"; exit 1; }
 
+# 5. Static wiring checks for apply_after_pull (no HA/Supervisor available here)
+grep -q '"homeassistant_api": true' "${HERE}/../gitops_backup/config.json" \
+  || { echo "FAIL: homeassistant_api not enabled in config.json"; exit 1; }
+grep -q 'apply_after_pull' "${HERE}/../gitops_backup/config.json" \
+  || { echo "FAIL: apply_after_pull option missing from config.json"; exit 1; }
+grep -q 'homeassistant/reload_all' "$SCRIPT" \
+  || { echo "FAIL: reload_all call missing from script"; exit 1; }
+
 echo "OK: all self-checks passed"
