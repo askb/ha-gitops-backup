@@ -32,3 +32,10 @@ configuration:
   signoff:
     name: DCO sign-off
     description: Add a Signed-off-by trailer to backup commits.
+  apply_after_pull:
+    name: Apply pulled changes
+    description: >-
+      After a merged PR is pulled into /config, apply it to the running Home
+      Assistant. "reload" calls homeassistant.reload_all (no restart);
+      "restart" restarts HA (needed for configuration.yaml integration or
+      custom_components changes); "off" disables it.

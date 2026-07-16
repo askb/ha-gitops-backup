@@ -1,6 +1,6 @@
 {
   "name": "HA GitOps",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "slug": "gitops_backup",
   "description": "PR-gated GitHub backup for your Home Assistant config \u2014 nothing force-pushes, every change is reviewable, CI validates before merge",
   "url": "https://github.com/askb/ha-gitops",
@@ -10,6 +10,7 @@
     "armv7"
   ],
   "init": false,
+  "homeassistant_api": true,
   "map": [
     "homeassistant_config:rw"
   ],
@@ -23,7 +24,8 @@
     "dry_run": false,
     "commit_name": "HA GitOps Backup",
     "commit_email": "gitops-backup@localhost",
-    "signoff": true
+    "signoff": true,
+    "apply_after_pull": "reload"
   },
   "schema": {
     "github_repo": "match(^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$)",
@@ -35,6 +37,7 @@
     "dry_run": "bool",
     "commit_name": "str",
     "commit_email": "str",
-    "signoff": "bool"
+    "signoff": "bool",
+    "apply_after_pull": "list(reload|restart|off)"
   }
 }
