@@ -107,7 +107,7 @@ OZW_Log.txt
 .uuid
 .ha_run.lock
 
-# This addon's runtime metadata (committing it creates a PR feedback loop)
+# This app's runtime metadata (committing it creates a PR feedback loop)
 .gitops_backup_status
 gitops_backup.log
 
@@ -121,7 +121,7 @@ EOF
 }
 
 never_commit_patterns() {
-    # Secrets, credentials, and the addon's own runtime metadata — must never be
+    # Secrets, credentials, and the app's own runtime metadata — must never be
     # committed. Shared by the exclude writer and the untracker.
     cat <<'EOF'
 secrets.yaml
@@ -139,7 +139,7 @@ EOF
 
 write_secret_excludes() {
     # Write the never-commit patterns to .git/info/exclude (git's local,
-    # un-shared ignore) so secrets/credentials + addon metadata stay out of
+    # un-shared ignore) so secrets/credentials + app metadata stay out of
     # backups even when migrating a repo that already has its own .gitignore
     # (seed_gitignore only writes one for a fresh repo). Called before the stash
     # so untracked secrets are never swept in. Idempotent: replace our block.
@@ -177,7 +177,7 @@ bootstrap_if_needed() {
     # Returns 0 if bootstrap ran (caller should stop), 1 if repo already exists
     if [ -d .git ]; then return 1; fi
     log "No git repo in ${CONFIG_DIR} — bootstrapping"
-    log "⚠ This add-on versions DECLARATIVE config only. It does NOT back up secrets.yaml, .storage/ (UI-configured integrations, logins, device/entity registries, dashboards), the database, or add-on data — those are excluded on purpose. For a 100% restore you MUST also run HA full backups (e.g. the Google Drive Backup add-on). See this add-on's DOCS → 'What is backed up where'."
+    log "⚠ This app versions DECLARATIVE config only. It does NOT back up secrets.yaml, .storage/ (UI-configured integrations, logins, device/entity registries, dashboards), the database, or app data — those are excluded on purpose. For a 100% restore you MUST also run HA full backups (e.g. the Google Drive Backup app). See this app's DOCS → 'What is backed up where'."
     if [ "$DRY_RUN" = "true" ]; then
         seed_gitignore
         log "DRY RUN: would git init, commit initial import, push to ${BASE_BRANCH}"
@@ -295,7 +295,7 @@ main() {
     local pr_url
     if pr_url=$(create_pull_request "$branch_name" \
         "chore: auto backup $(date '+%Y-%m-%d %H:%M')" \
-        "Automated Home Assistant config backup — ${changed_count} changed file(s). Opened by the GitOps Config Backup addon; review and merge.") \
+        "Automated Home Assistant config backup — ${changed_count} changed file(s). Opened by the GitOps Config Backup app; review and merge.") \
         && [ -n "$pr_url" ]; then
         write_status success pr_created "$pr_url"
         log "✅ Backup complete — PR opened: ${pr_url}"

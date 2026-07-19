@@ -13,14 +13,14 @@ PR-gated GitHub backup for your Home Assistant config.
 ### 1. Create the repository
 
 github.com → **+** → **New repository** → name it (e.g. `my-ha-config`) →
-**Private** → Create. Don't add a README — the add-on bootstraps the content.
+**Private** → Create. Don't add a README — the app bootstraps the content.
 
 ### 2. Create the token
 
 1. github.com → your avatar → **Settings** → **Developer settings** →
    **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
 2. **Token name**: `ha-gitops` · **Expiration**: 1 year (set a calendar
-   reminder — the add-on status will show `error` when it expires)
+   reminder — the app status will show `error` when it expires)
 3. **Repository access**: *Only select repositories* → pick the repo from step 1
 4. **Permissions → Repository permissions**:
    - **Contents**: Read and write
@@ -31,9 +31,9 @@ github.com → **+** → **New repository** → name it (e.g. `my-ha-config`) �
 > The token can only touch that single repo. Even if it leaked, your other
 > repos and account are untouchable — that's why fine-grained beats classic PATs.
 
-### 3. Configure the add-on
+### 3. Configure the app
 
-Settings → Add-ons → GitOps Config Backup → **Configuration**:
+Settings → Apps → GitOps Config Backup → **Configuration**:
 
 ```yaml
 github_repo: yourname/my-ha-config
@@ -41,11 +41,11 @@ github_token: github_pat_XXXXXXXX
 dry_run: true        # first run: log only, push nothing
 ```
 
-Start the add-on, then check `gitops_backup.log` in your config folder to see
+Start the app, then check `gitops_backup.log` in your config folder to see
 what *would* be committed. Happy? Set `dry_run: false` and restart. The first
 real run pushes the initial import; every run after that only opens PRs.
 
-The token is stored in the add-on options by the Supervisor — it never goes
+The token is stored in the app options by the Supervisor — it never goes
 into git, and the seeded `.gitignore` keeps `secrets.yaml` and other sensitive
 files out of the repo entirely.
 
@@ -59,30 +59,30 @@ repo → Settings → Branches → require the *HA Config Validation* and
 
 ## What is backed up where (best practice)
 
-This add-on is **change tracking for your config**, not disaster recovery.
+This app is **change tracking for your config**, not disaster recovery.
 Run both layers:
 
-| Data | This add-on (GitHub) | HA Backup + Google Drive |
+| Data | This app (GitHub) | HA Backup + Google Drive |
 |------|----------------------|--------------------------|
 | Config YAML (automations, dashboards, …) | ✅ versioned, reviewable diffs | ✅ inside the archive |
 | `secrets.yaml` | ❌ **never** (gitignored) | ✅ inside the **encrypted** archive |
 | `.storage/` — UI-added **integrations**, **logins/tokens**, **device/entity/area registries**, **UI (Lovelace) dashboards**, helpers | ❌ never (holds secrets) | ✅ **most restore-critical item** |
 | Credentials: `*.token`, `.google.token`, `*.key`, `*.pem`, `.cloud/` | ❌ never | ✅ |
 | Databases, history, logs | ❌ never | ✅ (recorder DB, if selected) |
-| Add-on configs/data, TLS certs (`/ssl`) — live **outside** `/config` | ❌ add-on can't see them | ✅ |
+| App configs/data, TLS certs (`/ssl`) — live **outside** `/config` | ❌ app can't see them | ✅ |
 | Media, camera recordings | ❌ | usually excluded — external drive |
 
 > **The 100% guarantee: config repo + encrypted full backup. Neither alone is
 > enough.** Restore from the git repo *only* and you'd get your YAML back but
 > have to re-do by hand every UI-added integration, all logins/tokens, device
-> and entity names, UI dashboards, `secrets.yaml`, and every add-on — because
+> and entity names, UI dashboards, `secrets.yaml`, and every app — because
 > those live in `.storage/`, `secrets.yaml`, or outside `/config`. That's why a
 > full backup (Pillar 2) is mandatory, not optional.
 
 **Recommended stack:**
 
 ```text
-GitHub (this add-on)      → config changes: who/what/when, PR review, CI gate
+GitHub (this app)      → config changes: who/what/when, PR review, CI gate
 HA auto backup (daily)    → full system state, encrypted, on the box
  └─ Google Drive Backup   → off-site copies of those archives
 Password manager          → the three keys to the kingdom (below)
@@ -96,13 +96,13 @@ Password manager          → the three keys to the kingdom (below)
 - Store in your **password manager** (never in the repo, never in a README):
   1. the HA **backup encryption password** — without it your off-site backups
      are unrestorable,
-  2. the **GitHub PAT** for this add-on,
+  2. the **GitHub PAT** for this app,
   3. your HA admin credentials.
 - CI validates PRs with **stub** secrets (step 4) — real values never leave
   the box.
 
 **Disaster recovery order:** reinstall HAOS → restore the encrypted HA backup
-(brings back `secrets.yaml`, `.storage`, add-ons) → your config repo is then
+(brings back `secrets.yaml`, `.storage`, apps) → your config repo is then
 already live on the box and git history simply resumes.
 
 ## Options
@@ -114,7 +114,7 @@ already live on the box and git history simply resumes.
 | `base_branch` | `main` | Branch PRs target |
 | `branch_prefix` | `auto-backup` | Prefix for backup branches |
 | `interval_hours` | `24` | Hours between runs (1–168) |
-| `run_at_start` | `false` | Also run when the add-on starts |
+| `run_at_start` | `false` | Also run when the app starts |
 | `dry_run` | `false` | Log what would change; push nothing |
 | `commit_name` / `commit_email` | see defaults | Commit author identity |
 | `signoff` | `true` | Add `Signed-off-by` (DCO) to commits |
@@ -124,7 +124,7 @@ already live on the box and git history simply resumes.
 
 Everything in your config folder **except** the seeded `.gitignore` exclusions:
 `secrets.yaml`, `.storage/`, `.cloud/`, databases, logs, `*.token`,
-`.google.token`, `known_devices.yaml`, `ip_bans.yaml`, and the add-on's own
+`.google.token`, `known_devices.yaml`, `ip_bans.yaml`, and the app's own
 status/log files.
 
 ## Status in Home Assistant

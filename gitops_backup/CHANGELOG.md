@@ -3,17 +3,17 @@
 ## 0.3.0
 
 - Feature: `apply_after_pull` — after a merged PR is pulled into `/config`, the
-  add-on now applies it to the running Home Assistant instead of leaving files
+  app now applies it to the running Home Assistant instead of leaving files
   on disk unloaded. Default `reload` calls `homeassistant.reload_all` (no
   restart); `restart` restarts HA (for `configuration.yaml` integration or
   `custom_components/` changes); `off` keeps the previous behaviour. Only fires
   when the sync actually advanced `HEAD`, never in `dry_run`. Requires the
-  add-on's Home Assistant API access (now enabled via `homeassistant_api`).
+  app's Home Assistant API access (now enabled via `homeassistant_api`).
 
 ## 0.2.1
 
 - Security: the never-commit guarantee (secrets, credentials, `.storage/`,
-  addon runtime files) now holds for **migrated** repos too, not just fresh
+  app runtime files) now holds for **migrated** repos too, not just fresh
   ones. Patterns are enforced via `.git/info/exclude` on every run, and any
   secret a prior run already committed is untracked (the removal flows out
   through the next backup PR). Previously a repo that arrived with its own
@@ -21,18 +21,18 @@
 
 ## 0.2.0
 
-- Docs: make the two-pillar backup model explicit — config repo (this add-on)
+- Docs: make the two-pillar backup model explicit — config repo (this app)
   + encrypted HA full backup (e.g. Google Drive Backup) = 100% restorable;
   neither alone is enough. Sharpened the "what is backed up where" table
   (names exactly what `.storage/` holds and what lives outside `/config`).
 - Security: seed `.gitignore` now also excludes `*.token` / `.google.token`
   so OAuth tokens (e.g. Google Calendar) never land in the repo.
-- First bootstrap now logs a disaster-recovery warning: this add-on versions
+- First bootstrap now logs a disaster-recovery warning: this app versions
   declarative config only; run HA full backups for a complete restore.
 
 ## 0.1.1
 
-- Fix: keep the addon's own runtime files (`.gitops_backup_status`,
+- Fix: keep the app's own runtime files (`.gitops_backup_status`,
   `gitops_backup.log`) out of backups when migrating a repo that already has a
   `.gitignore` — they were previously swept into backup PRs and risked a
   status-file PR feedback loop. Now excluded via `.git/info/exclude` on every
