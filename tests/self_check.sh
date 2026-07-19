@@ -62,14 +62,14 @@ git -c safe.bareRepository=all -C "$TMP/origin.git" branch | grep -q "auto-backu
 status | grep -q "warning:branch_pushed" || { echo "FAIL: drift status = $(status)"; exit 1; }
 git -C "$TMP/config" branch --show-current | grep -q "^main$" || { echo "FAIL: not back on main"; exit 1; }
 
-# 4. Migration case: repo already had its own .gitignore lacking the addon's
-#    entries, and was never excluded. The addon's own status file + log AND any
+# 4. Migration case: repo already had its own .gitignore lacking the app's
+#    entries, and was never excluded. The app's own status file + log AND any
 #    secrets/credentials must be kept out of the backup — even an already-
 #    committed secret must be untracked (regression test for seed_gitignore
 #    skip-when-.gitignore-exists + secret-leak on migrated repos).
 sleep 1  # ensure a distinct auto-backup/<timestamp> branch name
 rm -f "$TMP/config/.git/info/exclude"                 # never-excluded repo
-printf 'secrets.yaml\n' > "$TMP/config/.gitignore"    # user ignore, no addon/token entries
+printf 'secrets.yaml\n' > "$TMP/config/.gitignore"    # user ignore, no app/token entries
 HOME="$TMP" git -C "$TMP/config" add .gitignore
 HOME="$TMP" git -C "$TMP/config" commit -q -m "user gitignore"
 echo "success:no_changes:" > "$TMP/config/.gitops_backup_status"
@@ -84,7 +84,7 @@ newbranch=$(git -c safe.bareRepository=all -C "$TMP/origin.git" branch \
   | grep -o 'auto-backup/[^ ]*' | tail -1)
 tree=$(git -c safe.bareRepository=all -C "$TMP/origin.git" ls-tree -r --name-only "$newbranch")
 if echo "$tree" | grep -qE '^\.gitops_backup_status$|^gitops_backup\.log$'; then
-  echo "FAIL: addon runtime files committed to backup branch"; exit 1
+  echo "FAIL: app runtime files committed to backup branch"; exit 1
 fi
 if echo "$tree" | grep -qE '^\.google\.token$|^leaked\.key$|^secrets\.yaml$'; then
   echo "FAIL: a secret/credential was committed to the backup branch"; exit 1
